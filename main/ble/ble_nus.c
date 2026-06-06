@@ -6,10 +6,14 @@
 #include "host/ble_gatt.h"
 #include "host/ble_sm.h"
 #include "host/ble_store.h"
+#include "store/config/ble_store_config.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
+
+/* ble_store_config_init is not declared in the public header */
+extern void ble_store_config_init(void);
 
 #define TAG "BLE_NUS"
 
@@ -254,11 +258,14 @@ void ble_nus_init(ble_nus_rx_cb_t rx_callback)
     ble_hs_cfg.sync_cb = ble_on_sync;
     ble_hs_cfg.reset_cb = ble_on_reset;
 
-    /* Just Works pairing — no PIN required */
+    /* Initialize security store */
+    ble_store_config_init();
+
+    /* Just Works pairing — no PIN required, legacy mode */
     ble_hs_cfg.sm_io_cap = BLE_SM_IO_CAP_NO_IO;
     ble_hs_cfg.sm_bonding = 0;
     ble_hs_cfg.sm_mitm = 0;
-    ble_hs_cfg.sm_sc = 1;
+    ble_hs_cfg.sm_sc = 0;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
 
     ESP_LOGI(TAG, "SM config: io_cap=%d bonding=%d mitm=%d sc=%d",
