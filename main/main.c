@@ -5,6 +5,7 @@
 #include "lvgl.h"
 #include "bsp/esp-bsp.h"
 #include "watch_face.h"
+#include "app_manager.h"
 #include "rtc_pcf85063.h"
 #include "battery.h"
 
@@ -53,6 +54,9 @@ void app_main(void)
     set_time_from_build();
 
     bsp_display_start();
+
+    /* Initialize app manager */
+    app_manager_init();
 
     /* Initialize RTC chip */
     rtc_pcf85063_init();

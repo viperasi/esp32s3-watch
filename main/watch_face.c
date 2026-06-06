@@ -1,4 +1,5 @@
 #include "watch_face.h"
+#include "app_manager.h"
 #include "rtc_pcf85063.h"
 #include "battery.h"
 #include "bsp/esp-bsp.h"
@@ -12,6 +13,7 @@
 LV_FONT_DECLARE(font_barlow_172)
 LV_FONT_DECLARE(font_barlow_120)
 LV_FONT_DECLARE(font_barlow_72)
+LV_FONT_DECLARE(font_barlow_56)
 LV_FONT_DECLARE(font_barlow_38)
 LV_FONT_DECLARE(font_spacemono_40)
 LV_FONT_DECLARE(font_spacemono_10)
@@ -110,7 +112,17 @@ static void init_themes(void)
 
 static watch_face_t wf;
 
+/* Gesture: swipe up to open launcher */
+static void swipe_up_cb(lv_event_t *e)
+{
+    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
+    if (dir == LV_DIR_TOP) {
+        app_manager_show_launcher();
+    }
+}
+
 static lv_obj_t *aod_time_label = NULL;
+static lv_obj_t *aod_date_label = NULL;
 static bool in_aod = false;
 static int aod_last_min = -1;
 static int64_t aod_cooldown = 0;  /* Prevent rapid AOD re-entry */
@@ -374,14 +386,21 @@ static void enter_aod_mode(void)
     aod_time_label = lv_label_create(scr);
     lv_obj_set_style_text_color(aod_time_label, lv_color_hex(0xFFFFFF), 0);
     lv_obj_set_style_text_font(aod_time_label, &font_barlow_120, 0);
-    lv_obj_align(aod_time_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(aod_time_label, LV_ALIGN_CENTER, 0, -20);
+
+    aod_date_label = lv_label_create(scr);
+    lv_obj_set_style_text_color(aod_date_label, lv_color_hex(0x888888), 0);
+    lv_obj_set_style_text_font(aod_date_label, &font_barlow_56, 0);
+    lv_obj_align(aod_date_label, LV_ALIGN_CENTER, 0, 50);
 
     struct tm tm;
     if (rtc_pcf85063_get_time(&tm)) {
-        char buf[8];
+        char buf[32];
         snprintf(buf, sizeof(buf), "%02d:%02d", tm.tm_hour, tm.tm_min);
         lv_label_set_text(aod_time_label, buf);
         aod_last_min = tm.tm_min;
+        snprintf(buf, sizeof(buf), "%04d.%02d.%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+        lv_label_set_text(aod_date_label, buf);
     }
 
     in_aod = true;
@@ -406,6 +425,7 @@ static void exit_aod_mode(void)
 
     in_aod = false;
     aod_time_label = NULL;
+    aod_date_label = NULL;
     aod_last_min = -1;
     pwr_flag = false;
 
@@ -433,15 +453,26 @@ static void main_timer_cb(lv_timer_t *timer)
         if (rtc_pcf85063_get_time(&tm)) {
             if (tm.tm_min != aod_last_min) {
                 aod_last_min = tm.tm_min;
-                char buf[8];
+                char buf[32];
                 snprintf(buf, sizeof(buf), "%02d:%02d", tm.tm_hour, tm.tm_min);
                 lv_label_set_text(aod_time_label, buf);
+                snprintf(buf, sizeof(buf), "%04d.%02d.%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+                lv_label_set_text(aod_date_label, buf);
             }
         }
         return;
     }
 
     tick_cnt++;
+
+    /* When launcher/app is showing, BOOT short press goes back */
+    if (!app_manager_is_foreground()) {
+        if (boot_press_us == -1) {
+            boot_press_us = 0;
+            app_manager_back();
+        }
+        return;
+    }
 
     /* ---- Handle button events ---- */
     bool long_press = false;
@@ -598,6 +629,7 @@ void watch_face_create(void)
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(scr, LV_SCROLLBAR_MODE_OFF);
     lv_obj_add_event_cb(scr, draw_bg_cb, LV_EVENT_DRAW_MAIN, NULL);
+    lv_obj_add_event_cb(scr, swipe_up_cb, LV_EVENT_GESTURE, NULL);
     wf.scr = scr;
 
     /* 300x367 container, centered */
@@ -790,10 +822,10 @@ void watch_face_create(void)
     lv_label_set_text(wf.date_tag, "DATE");
     lv_obj_set_style_pad_bottom(wf.date_tag, 1, 0);
 
-    wf.date_year_label = make_lbl(date_area, t->main, &font_barlow_38, 1);
+    wf.date_year_label = make_lbl(date_area, t->main, &font_barlow_56, 1);
     lv_label_set_text(wf.date_year_label, "2026");
 
-    wf.date_md_label = make_lbl(date_area, t->sec, &font_barlow_38, 1);
+    wf.date_md_label = make_lbl(date_area, t->sec, &font_barlow_56, 1);
     lv_label_set_text(wf.date_md_label, "06.05");
 
     /* ===== MINUTES ROW CONTENT ===== */
