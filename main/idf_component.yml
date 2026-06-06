@@ -1,0 +1,10 @@
+dependencies:
+  waveshare/esp32_s3_touch_amoled_2_06:
+    version: "*"
+  waveshare/pcf85063a:
+    version: "*"
+  lvgl/lvgl:
+    version: ">=9.3.0"
+    public: true
+  cube32esp/xpowerslib:
+    version: "*"

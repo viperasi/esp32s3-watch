@@ -1,0 +1,112 @@
+<style>
+.wf{width:410px;height:502px;background:#E8E8E4;border-radius:28px;border:2px solid #B8B8B4;position:relative;overflow:hidden;box-sizing:border-box;font-family:'Courier New',monospace;}
+.gbg{position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,0.06) 1px,transparent 1px);background-size:20px 20px;pointer-events:none;}
+</style>
+<div style="display:flex;justify-content:center;padding:1.5rem 0;">
+<div class="wf">
+  <div class="gbg"></div>
+  <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 410 502">
+    <line x1="14" y1="18" x2="26" y2="18" stroke="#888" stroke-width="0.8"/>
+    <line x1="20" y1="12" x2="20" y2="24" stroke="#888" stroke-width="0.8"/>
+    <line x1="384" y1="18" x2="396" y2="18" stroke="#888" stroke-width="0.8"/>
+    <line x1="390" y1="12" x2="390" y2="24" stroke="#888" stroke-width="0.8"/>
+    <line x1="14" y1="478" x2="26" y2="478" stroke="#888" stroke-width="0.8"/>
+    <line x1="20" y1="472" x2="20" y2="484" stroke="#888" stroke-width="0.8"/>
+    <line x1="384" y1="478" x2="396" y2="478" stroke="#888" stroke-width="0.8"/>
+    <line x1="390" y1="472" x2="390" y2="484" stroke="#888" stroke-width="0.8"/>
+  </svg>
+
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;">
+
+    <!-- TOP BAR -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 18px 4px;">
+      <span style="font-size:9px;letter-spacing:3px;color:#555;font-weight:700;">PNL-042 · WATCH</span>
+      <span style="font-size:9px;letter-spacing:2px;color:#777;font-weight:600;">REV.2026.06</span>
+    </div>
+    <div style="padding:0 18px 6px;display:flex;gap:6px;align-items:center;">
+      <div style="height:2.5px;width:90px;background:#C0504D;"></div>
+      <div style="height:2.5px;flex:1;background:#CCCCCC;"></div>
+      <div style="height:2.5px;width:110px;background:#4472C4;"></div>
+    </div>
+
+    <!-- HOURS ROW -->
+    <div style="flex:1.15;min-height:0;display:flex;align-items:stretch;overflow:hidden;">
+      <!-- Hour number -->
+      <div style="position:relative;display:flex;align-items:center;flex-shrink:0;">
+        <span style="font-size:9px;letter-spacing:3px;color:#888;font-weight:700;position:absolute;top:5px;left:18px;">HOURS</span>
+        <span id="h" style="font-size:172px;font-weight:900;color:#1a1f2e;line-height:1;letter-spacing:-8px;font-family:'Arial Black','Arial',sans-serif;padding-left:10px;padding-top:16px;">21</span>
+      </div>
+      <!-- DATE fills right space -->
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;padding:16px 16px 0 0;">
+        <span style="font-size:8px;letter-spacing:3px;color:#888;font-weight:700;margin-bottom:2px;">DATE</span>
+        <span id="date-y" style="font-size:38px;font-weight:900;color:#1a1f2e;line-height:1;letter-spacing:1px;">2026</span>
+        <span id="date-md" style="font-size:38px;font-weight:900;color:#555;line-height:1;letter-spacing:1px;">06.05</span>
+      </div>
+    </div>
+
+    <div style="height:1px;margin:0 18px;background:rgba(0,0,0,0.12);"></div>
+
+    <!-- MINUTES ROW -->
+    <div style="flex:1.05;min-height:0;display:flex;align-items:stretch;overflow:hidden;">
+      <!-- DAY fills left space -->
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 0 16px 16px;">
+        <span style="font-size:8px;letter-spacing:3px;color:#888;font-weight:700;margin-bottom:2px;">DAY</span>
+        <span id="day" style="font-size:72px;font-weight:900;color:#4472C4;line-height:1;letter-spacing:2px;">FRI</span>
+      </div>
+      <!-- Minute number -->
+      <div style="position:relative;display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;">
+        <span style="font-size:9px;letter-spacing:3px;color:#888;font-weight:700;position:absolute;bottom:5px;right:18px;">MINUTES</span>
+        <span id="m" style="font-size:172px;font-weight:900;color:#1a1f2e;line-height:1;letter-spacing:-8px;font-family:'Arial Black','Arial',sans-serif;padding-right:10px;padding-bottom:16px;">32</span>
+      </div>
+    </div>
+
+    <div style="height:1px;margin:0 18px;background:rgba(0,0,0,0.12);"></div>
+
+    <!-- SEC + PWR ROW -->
+    <div style="display:flex;align-items:center;padding:5px 18px 5px;">
+      <div style="display:flex;flex-direction:column;gap:0;">
+        <span style="font-size:8px;letter-spacing:3px;color:#888;font-weight:700;">SEC</span>
+        <span id="s" style="font-size:40px;font-weight:900;color:#C0504D;line-height:1;font-family:'Arial Black','Arial',sans-serif;letter-spacing:-1px;">25</span>
+      </div>
+      <div style="flex:1;margin:0 18px;display:flex;flex-direction:column;gap:4px;">
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:8px;letter-spacing:3px;color:#555;font-weight:700;">PWR SYS</span>
+          <span style="font-size:8px;font-weight:900;color:#1a1f2e;letter-spacing:1px;">80%</span>
+        </div>
+        <div style="height:7px;background:#D0D0CC;border-radius:1px;overflow:hidden;">
+          <div style="height:100%;width:80%;background:#4472C4;border-radius:1px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div style="padding:0 18px 4px;display:flex;gap:6px;">
+      <div style="height:2px;width:80px;background:#C0504D;"></div>
+      <div style="height:2px;flex:1;background:#CCCCCC;"></div>
+      <div style="height:2px;width:100px;background:#4472C4;"></div>
+    </div>
+    <div style="padding:2px 18px 10px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:4px;"><div style="width:6px;height:6px;border-radius:50%;background:#4CAF50;"></div><span style="font-size:8px;letter-spacing:2px;color:#555;font-weight:700;">SYS</span></div>
+      <div style="display:flex;align-items:center;gap:4px;"><div style="width:6px;height:6px;border-radius:50%;background:#4472C4;"></div><span style="font-size:8px;letter-spacing:2px;color:#555;font-weight:700;">NAV</span></div>
+      <div style="display:flex;align-items:center;gap:4px;"><div style="width:6px;height:6px;border-radius:50%;background:#C0504D;"></div><span style="font-size:8px;letter-spacing:2px;color:#555;font-weight:700;">COM</span></div>
+      <span style="font-size:8px;letter-spacing:2px;color:#666;font-weight:700;">MEM 64K</span>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+function pad(n){return String(n).padStart(2,'0');}
+const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+function tick(){
+  const t=new Date();
+  document.getElementById('h').textContent=pad(t.getHours());
+  document.getElementById('m').textContent=pad(t.getMinutes());
+  document.getElementById('s').textContent=pad(t.getSeconds());
+  document.getElementById('date-y').textContent=t.getFullYear();
+  document.getElementById('date-md').textContent=pad(t.getMonth()+1)+'.'+pad(t.getDate());
+  document.getElementById('day').textContent=days[t.getDay()];
+}
+tick();setInterval(tick,1000);
+</script>

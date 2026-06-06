@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pragmata Watch Face Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:       #e8eae6;
+    --bg2:      #dfe1dd;
+    --bg3:      #d4d6d2;
+    --suit:     #c8cac6;
+    --grid:     rgba(80,100,120,0.12);
+    --line:     rgba(60,80,100,0.25);
+    --text:     #1a2230;
+    --text2:    #4a5a6a;
+    --text3:    #8a9aaa;
+    --red-btn:  #c03020;
+    --blue-btn: #2860c0;
+    --stripe-r: #c03020;
+    --stripe-b: #2060b0;
+  }
+
+  body {
+    background: #2a2a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .watch-container { position: relative; }
+
+  .watch-bezel {
+    width: 434px;
+    height: 526px;
+    border-radius: 40px;
+    background: #3a3a3e;
+    padding: 6px;
+    box-shadow:
+      0 0 0 2px #4a4a4e,
+      0 0 0 4px #2a2a2e,
+      inset 0 0 20px rgba(0,0,0,0.3),
+      0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .watch-screen {
+    width: 410px;
+    height: 502px;
+    border-radius: 34px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+
+  .grid {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .crosshair { position: absolute; z-index: 2; }
+  .crosshair::before, .crosshair::after { content: ''; position: absolute; background: var(--line); }
+  .crosshair::before { width: 1px; height: 18px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+  .crosshair::after { width: 18px; height: 1px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+  .crosshair.tl { top: 18px; left: 18px; }
+  .crosshair.tr { top: 18px; right: 18px; }
+  .crosshair.bl { bottom: 18px; left: 18px; }
+  .crosshair.br { bottom: 18px; right: 18px; }
+
+  .rivet {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    border: 1px solid var(--line);
+    background: radial-gradient(circle at 30% 30%, var(--bg2), var(--bg3));
+    z-index: 2;
+  }
+  .rivet.tl { top: 10px; left: 10px; }
+  .rivet.tr { top: 10px; right: 10px; }
+  .rivet.bl { bottom: 10px; left: 10px; }
+  .rivet.br { bottom: 10px; right: 10px; }
+
+  .content {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 20px 10px;
+  }
+
+  /* Top bar */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .panel-id { color: var(--text3); font-size: 8px; letter-spacing: 3px; }
+  .panel-rev { color: var(--text3); font-size: 7px; letter-spacing: 2px; opacity: 0.6; }
+
+  /* Battery inline */
+  .bat-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bat-label { color: var(--text3); font-size: 7px; letter-spacing: 2px; }
+  .bat-bar { width: 40px; height: 5px; background: var(--bg3); border: 1px solid var(--line); }
+  .bat-fill { height: 100%; background: var(--blue-btn); transition: width 0.5s; }
+  .bat-pct { color: var(--text2); font-size: 8px; font-weight: 700; }
+
+  /* Stripe */
+  .stripe {
+    display: flex;
+    height: 3px;
+    gap: 2px;
+    flex-shrink: 0;
+    margin: 6px 0;
+  }
+  .stripe .r { flex: 1; background: var(--stripe-r); opacity: 0.7; }
+  .stripe .w { flex: 1; background: var(--suit); opacity: 0.6; }
+  .stripe .b { flex: 1; background: var(--stripe-b); opacity: 0.7; }
+
+  /* 2x2 Main grid */
+  .main-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 0;
+  }
+  .cell {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .cell-tl { align-items: flex-start; padding-left: 4px; }
+  .cell-tr { align-items: flex-end; padding-right: 4px; }
+  .cell-bl { align-items: flex-start; padding-left: 4px; }
+  .cell-br { align-items: flex-end; padding-right: 4px; }
+
+  .cell-label {
+    color: var(--text3);
+    font-size: 9px;
+    letter-spacing: 4px;
+    margin-bottom: 2px;
+  }
+  .cell-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 0.85;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 2px;
+  }
+  .cell-value.big {
+    font-size: 148px;
+  }
+  .cell-value.med {
+    font-size: 52px;
+    font-weight: 500;
+    color: var(--text2);
+  }
+
+  /* Bottom status */
+  .bottom-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    padding-top: 4px;
+  }
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 7px;
+    letter-spacing: 2px;
+    color: var(--text3);
+  }
+  .status-dot {
+    width: 5px; height: 5px; border-radius: 50%; display: inline-block;
+  }
+  .status-dot.green { background: #27ae60; box-shadow: 0 0 4px rgba(39,174,96,0.5); animation: pulse 2s infinite; }
+  .status-dot.red { background: var(--red-btn); box-shadow: 0 0 4px rgba(192,48,32,0.5); animation: pulse 3s infinite; }
+  .status-dot.blue { background: var(--blue-btn); box-shadow: 0 0 4px rgba(40,96,192,0.5); }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+</head>
+<body>
+<div class="watch-container">
+  <div class="watch-bezel">
+    <div class="watch-screen">
+      <div class="grid"></div>
+      <div class="crosshair tl"></div>
+      <div class="crosshair tr"></div>
+      <div class="crosshair bl"></div>
+      <div class="crosshair br"></div>
+      <div class="rivet tl"></div>
+      <div class="rivet tr"></div>
+      <div class="rivet bl"></div>
+      <div class="rivet br"></div>
+
+      <div class="content">
+        <div class="top-bar">
+          <span class="panel-id">PNL-042</span>
+          <div class="bat-inline">
+            <span class="bat-label">PWR</span>
+            <div class="bat-bar"><div class="bat-fill" id="batBar" style="width:82%"></div></div>
+            <span class="bat-pct" id="batPercent">82%</span>
+          </div>
+          <span class="panel-rev">REV.2026</span>
+        </div>
+
+        <div class="stripe">
+          <div class="r"></div><div class="w"></div><div class="b"></div>
+        </div>
+
+        <!-- 2x2 Grid: Hours | Date / Day | Minutes -->
+        <div class="main-grid">
+          <div class="cell cell-tl">
+            <div class="cell-label">HRS</div>
+            <div class="cell-value big" id="hours">14</div>
+          </div>
+          <div class="cell cell-tr">
+            <div class="cell-label">DATE</div>
+            <div class="cell-value med" id="date">2026.06.05</div>
+          </div>
+          <div class="cell cell-bl">
+            <div class="cell-label">DAY</div>
+            <div class="cell-value med" id="dayname">THU</div>
+          </div>
+          <div class="cell cell-br">
+            <div class="cell-label">MIN</div>
+            <div class="cell-value big" id="minutes">32</div>
+          </div>
+        </div>
+
+        <div class="stripe">
+          <div class="r"></div><div class="w"></div><div class="b"></div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="status-item">
+            <span class="status-dot green"></span> SYS
+          </div>
+          <div class="status-item">
+            <span id="seconds">:07</span>
+          </div>
+          <div class="status-item">
+            <span class="status-dot blue"></span> NAV
+          </div>
+          <div class="status-item">
+            <span class="status-dot red"></span> COM
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function pad(n) { return n.toString().padStart(2, '0'); }
+  function getDayName(d) { return ['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()]; }
+
+  function update() {
+    const now = new Date();
+    document.getElementById('hours').textContent = pad(now.getHours());
+    document.getElementById('minutes').textContent = pad(now.getMinutes());
+    document.getElementById('seconds').textContent = ':' + pad(now.getSeconds());
+    document.getElementById('date').textContent =
+      now.getFullYear() + '.' + pad(now.getMonth()+1) + '.' + pad(now.getDate());
+    document.getElementById('dayname').textContent = getDayName(now);
+  }
+
+  update();
+  setInterval(update, 1000);
+
+  let bat = 82;
+  setInterval(() => {
+    bat = Math.max(5, Math.min(100, bat + (Math.random() - 0.52)));
+    document.getElementById('batPercent').textContent = Math.round(bat) + '%';
+    document.getElementById('batBar').style.width = Math.round(bat) + '%';
+  }, 3000);
+</script>
+</body>
+</html>
