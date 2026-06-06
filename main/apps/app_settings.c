@@ -7,9 +7,6 @@
 #define SCR_W 410
 #define SCR_H 502
 
-LV_FONT_DECLARE(font_barlow_56)
-LV_FONT_DECLARE(font_barlow_38)
-
 static lv_obj_t *wifi_status_label = NULL;
 static lv_obj_t *bt_status_label = NULL;
 
@@ -32,7 +29,7 @@ static void wifi_click_cb(lv_event_t *e)
     lv_obj_t *title = lv_label_create(scr);
     lv_label_set_text(title, "WiFi");
     lv_obj_set_style_text_color(title, lv_color_hex(0xE0E0DC), 0);
-    lv_obj_set_style_text_font(title, &font_barlow_56, 0);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_24, 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
 
     lv_obj_t *ph = lv_label_create(scr);
@@ -63,7 +60,7 @@ static void bt_click_cb(lv_event_t *e)
     lv_obj_t *title = lv_label_create(scr);
     lv_label_set_text(title, "Bluetooth");
     lv_obj_set_style_text_color(title, lv_color_hex(0xE0E0DC), 0);
-    lv_obj_set_style_text_font(title, &font_barlow_56, 0);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_24, 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
 
     lv_obj_t *ph = lv_label_create(scr);
@@ -120,7 +117,7 @@ static lv_obj_t *create_menu_item(lv_obj_t *parent, const char *symbol,
     lv_obj_t *lbl = lv_label_create(item);
     lv_label_set_text(lbl, name);
     lv_obj_set_style_text_color(lbl, lv_color_hex(0xE0E0DC), 0);
-    lv_obj_set_style_text_font(lbl, &font_barlow_38, 0);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_20, 0);
     lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 50, -8);
 
     lv_obj_t *arrow = lv_label_create(item);
@@ -154,7 +151,7 @@ lv_obj_t *app_settings_create(void)
     lv_obj_t *title = lv_label_create(scr);
     lv_label_set_text(title, "SETTINGS");
     lv_obj_set_style_text_color(title, lv_color_hex(0xE0E0DC), 0);
-    lv_obj_set_style_text_font(title, &font_barlow_56, 0);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_24, 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
 
     /* Scrollable menu container */
