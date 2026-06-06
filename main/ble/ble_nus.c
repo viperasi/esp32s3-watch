@@ -5,6 +5,7 @@
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
 #include "host/ble_sm.h"
+#include "host/ble_store.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
 #include "nimble/nimble_port.h"
@@ -187,6 +188,20 @@ static int gap_event_handler(struct ble_gap_event *event, void *arg)
                  event->mtu.conn_handle, event->mtu.value);
         break;
 
+    case BLE_GAP_EVENT_ENC_CHANGE:
+        ESP_LOGI(TAG, "ENC_CHANGE, status=%d", event->enc_change.status);
+        break;
+
+    case BLE_GAP_EVENT_REPEAT_PAIRING:
+        {
+            struct ble_gap_conn_desc desc;
+            int rc2 = ble_gap_conn_find(event->repeat_pairing.conn_handle, &desc);
+            if (rc2 == 0) {
+                ble_store_util_delete_peer(&desc.peer_id_addr);
+            }
+            return BLE_GAP_REPEAT_PAIRING_RETRY;
+        }
+
     default:
         break;
     }
@@ -244,6 +259,11 @@ void ble_nus_init(ble_nus_rx_cb_t rx_callback)
     ble_hs_cfg.sm_bonding = 0;
     ble_hs_cfg.sm_mitm = 0;
     ble_hs_cfg.sm_sc = 1;
+    ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
+
+    ESP_LOGI(TAG, "SM config: io_cap=%d bonding=%d mitm=%d sc=%d",
+             ble_hs_cfg.sm_io_cap, ble_hs_cfg.sm_bonding,
+             ble_hs_cfg.sm_mitm, ble_hs_cfg.sm_sc);
 
     /* Set device name */
     ble_svc_gap_device_name_set("Bangle.js Pragmata");
