@@ -2,6 +2,12 @@ idf_component_register(SRCS "main.c" "watch_face.c" "app_manager.c" "app_launche
                        "apps/app_settings.c"
                        "rtc_pcf85063.c"
                        "battery.cpp"
+                       "ble/ble_nus.c"
+                       "ble/ble_manager.c"
+                       "ble/ble_gadgetbridge.c"
+                       "ui/notification_ui.c"
+                       "ui/call_ui.c"
+                       "alarm_manager.c"
                        "fonts/font_barlow_172.c"
                        "fonts/font_barlow_120.c"
                        "fonts/font_barlow_72.c"
@@ -9,4 +15,5 @@ idf_component_register(SRCS "main.c" "watch_face.c" "app_manager.c" "app_launche
                        "fonts/font_barlow_38.c"
                        "fonts/font_spacemono_40.c"
                        "fonts/font_spacemono_10.c"
-                       INCLUDE_DIRS ".")
+                       INCLUDE_DIRS "." "ble" "ui"
+                       REQUIRES bt json nvs_flash)

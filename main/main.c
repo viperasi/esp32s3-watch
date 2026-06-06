@@ -2,12 +2,19 @@
 #include <sys/time.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h>
 #include "lvgl.h"
 #include "bsp/esp-bsp.h"
 #include "watch_face.h"
 #include "app_manager.h"
 #include "rtc_pcf85063.h"
 #include "battery.h"
+#include "ble_manager.h"
+#include "ble/ble_gadgetbridge.h"
+#include "ui/notification_ui.h"
+#include "ui/call_ui.h"
+#include "alarm_manager.h"
+#include "nvs_flash.h"
 
 #define TAG "WATCH"
 
@@ -42,29 +49,120 @@ static void set_time_from_build(void)
     settimeofday(&tv, NULL);
 }
 
+/* Heap-allocated structs for passing data across threads via lv_async_call */
+typedef struct {
+    int id;
+    char src[32];
+    char title[64];
+    char body[256];
+} notify_async_t;
+
+typedef struct {
+    char name[64];
+    char number[20];
+} call_async_t;
+
+static void show_notify_async(void *user_data)
+{
+    notify_async_t *d = (notify_async_t *)user_data;
+    notification_ui_show(d->src, d->title, d->body, d->id);
+    free(d);
+}
+
+static void dismiss_notify_async(void *user_data)
+{
+    int id = (int)(intptr_t)user_data;
+    notification_ui_dismiss(id);
+}
+
+static void on_notify_received_cb(const gb_notify_t *notify)
+{
+    notify_async_t *d = malloc(sizeof(notify_async_t));
+    if (!d) return;
+    d->id = notify->id;
+    strlcpy(d->src, notify->src, sizeof(d->src));
+    strlcpy(d->title, notify->title, sizeof(d->title));
+    strlcpy(d->body, notify->body, sizeof(d->body));
+    lv_async_call(show_notify_async, d);
+}
+
+static void on_notify_deleted_cb(int id)
+{
+    lv_async_call(dismiss_notify_async, (void *)(intptr_t)id);
+}
+
+static void show_call_async(void *user_data)
+{
+    call_async_t *d = (call_async_t *)user_data;
+    call_ui_show(d->name, d->number);
+    free(d);
+}
+
+static void end_call_async(void *user_data)
+{
+    (void)user_data;
+    call_ui_end();
+}
+
+static void on_call_received_cb(const gb_call_t *call)
+{
+    if (strcmp(call->cmd, "incoming") == 0) {
+        call_async_t *d = malloc(sizeof(call_async_t));
+        if (!d) return;
+        strlcpy(d->name, call->name, sizeof(d->name));
+        strlcpy(d->number, call->number, sizeof(d->number));
+        lv_async_call(show_call_async, d);
+    } else {
+        lv_async_call(end_call_async, NULL);
+    }
+}
+
+static void on_gb_time_cb(int epoch)
+{
+    struct timeval tv = { .tv_sec = epoch };
+    settimeofday(&tv, NULL);
+
+    time_t t = epoch;
+    struct tm *tm = localtime(&t);
+    rtc_pcf85063_set_time(tm);
+
+    ESP_LOGI(TAG, "Time synced from GB: epoch=%d", epoch);
+}
+
+static void on_gb_alarm_cb(const gb_alarm_t *alarms)
+{
+    alarm_manager_save(alarms);
+}
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "Starting Pragmata Watch...");
 
-    /* Set timezone to UTC+8 (China Standard Time) */
     setenv("TZ", "CST-8", 1);
     tzset();
 
-    /* Set system time from build timestamp */
     set_time_from_build();
 
     bsp_display_start();
 
-    /* Initialize app manager */
+    ble_manager_init();
     app_manager_init();
-
-    /* Initialize RTC chip */
     rtc_pcf85063_init();
-
-    /* Initialize battery (AXP2101 PMIC) */
     battery_init();
 
-    /* Try reading time from RTC; fall back to build timestamp */
+    notification_ui_init();
+    call_ui_init();
+
+    ble_gadgetbridge_register_notify_cb(on_notify_received_cb);
+    ble_gadgetbridge_register_notify_delete_cb(on_notify_deleted_cb);
+    ble_gadgetbridge_register_call_cb(on_call_received_cb);
+    ble_gadgetbridge_register_time_cb(on_gb_time_cb);
+    ble_gadgetbridge_register_alarm_cb(on_gb_alarm_cb);
+
+    nvs_flash_init();
+    alarm_manager_init();
+    alarm_manager_start();
+
     struct tm rtc_tm;
     if (rtc_pcf85063_get_time(&rtc_tm)) {
         time_t epoch = mktime(&rtc_tm);
