@@ -171,7 +171,7 @@ test_watch/
 
 ```bash
 # 编译
-cd /Users/xumin/Documents/workspace/esp32/test_watch
+cd your-project-dir
 idf.py build
 
 # 烧录 (替换为实际端口)

@@ -24,11 +24,18 @@ sdkconfig.old
 *.swo
 *~
 
-# Claude Code local settings
-.claude/settings.local.json
+# Claude Code
+.claude/
+CLAUDE.md
 
 # Multica local config
 .multica/
 
 # Agent context
 .agent_context/
+
+# ESP-IDF full config (sdkconfig.defaults is committed instead)
+sdkconfig
+
+# Superpowers docs (contain local paths)
+docs/superpowers/
