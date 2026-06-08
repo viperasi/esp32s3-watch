@@ -12,7 +12,7 @@
 #include "ble_manager.h"
 #include "ble/ble_gadgetbridge.h"
 #include "ui/notification_ui.h"
-#include "ui/call_ui.h"
+
 #include "alarm_manager.h"
 #include "nvs_flash.h"
 
@@ -57,10 +57,6 @@ typedef struct {
     char body[256];
 } notify_async_t;
 
-typedef struct {
-    char name[64];
-    char number[20];
-} call_async_t;
 
 static void show_notify_async(void *user_data)
 {
@@ -91,32 +87,6 @@ static void on_notify_deleted_cb(int id)
     lv_async_call(dismiss_notify_async, (void *)(intptr_t)id);
 }
 
-static void show_call_async(void *user_data)
-{
-    call_async_t *d = (call_async_t *)user_data;
-    call_ui_show(d->name, d->number);
-    free(d);
-}
-
-static void end_call_async(void *user_data)
-{
-    (void)user_data;
-    call_ui_end();
-}
-
-static void on_call_received_cb(const gb_call_t *call)
-{
-    if (strcmp(call->cmd, "incoming") == 0) {
-        call_async_t *d = malloc(sizeof(call_async_t));
-        if (!d) return;
-        strlcpy(d->name, call->name, sizeof(d->name));
-        strlcpy(d->number, call->number, sizeof(d->number));
-        lv_async_call(show_call_async, d);
-    } else {
-        lv_async_call(end_call_async, NULL);
-    }
-}
-
 static void on_gb_time_cb(int epoch)
 {
     struct timeval tv = { .tv_sec = epoch };
@@ -143,6 +113,8 @@ void app_main(void)
 
     set_time_from_build();
 
+    nvs_flash_init();
+
     bsp_display_start();
 
     ble_manager_init();
@@ -151,15 +123,12 @@ void app_main(void)
     battery_init();
 
     notification_ui_init();
-    call_ui_init();
 
     ble_gadgetbridge_register_notify_cb(on_notify_received_cb);
     ble_gadgetbridge_register_notify_delete_cb(on_notify_deleted_cb);
-    ble_gadgetbridge_register_call_cb(on_call_received_cb);
     ble_gadgetbridge_register_time_cb(on_gb_time_cb);
     ble_gadgetbridge_register_alarm_cb(on_gb_alarm_cb);
 
-    nvs_flash_init();
     alarm_manager_init();
     alarm_manager_start();
 

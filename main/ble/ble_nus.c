@@ -1,5 +1,6 @@
 #include "ble_nus.h"
 #include "esp_log.h"
+#include <stdlib.h>
 #include "host/ble_hs.h"
 #include "host/ble_hs_id.h"
 #include "host/ble_gap.h"
@@ -11,11 +12,18 @@
 #include "services/gatt/ble_svc_gatt.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
 
 /* ble_store_config_init is not declared in the public header */
 extern void ble_store_config_init(void);
 
 #define TAG "BLE_NUS"
+
+/* Advertising intervals (units of 0.625ms) */
+#define ADV_INTERVAL_FAST    0x0320  /* 500ms */
+#define ADV_INTERVAL_SLOW    0x0C80  /* 2000ms */
+#define ADV_FAST_DURATION_MS 30000   /* 30 seconds */
 
 /* NUS Service UUID: 6E400001-B5A3-F393-E0A9-E50E24DCCA9E */
 #define NUS_SVC_UUID16 0xFEF5 /* Shortened for adv; full 128-bit below */
@@ -37,13 +45,27 @@ static const ble_uuid128_t nus_tx_chr_uuid = BLE_UUID128_INIT(
 );
 
 static ble_nus_rx_cb_t s_rx_cb;
+static ble_nus_connect_cb_t s_connect_cb;
 static uint16_t s_conn_handle = BLE_HS_CONN_HANDLE_NONE;
 static bool s_is_connected = false;
 static uint16_t s_tx_val_handle;
 static uint8_t s_own_addr_type;
+static bool s_adv_fast = false;
+static TimerHandle_t s_adv_timer = NULL;
 
 static int gap_event_handler(struct ble_gap_event *event, void *arg);
 static void start_advertising(void);
+static void start_advertising_ex(bool fast);
+
+static void adv_timer_cb(TimerHandle_t timer)
+{
+    if (!s_is_connected && s_adv_fast) {
+        s_adv_fast = false;
+        ble_gap_adv_stop();
+        start_advertising_ex(false);
+        ESP_LOGI(TAG, "Switched to slow advertising");
+    }
+}
 
 static int nus_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                           struct ble_gatt_access_ctxt *ctxt, void *arg);
@@ -75,14 +97,16 @@ static int nus_chr_access(uint16_t conn_handle, uint16_t attr_handle,
 {
     if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
         uint16_t om_len = OS_MBUF_PKTLEN(ctxt->om);
-        uint8_t buf[512];
-        uint16_t len = om_len > sizeof(buf) ? sizeof(buf) : om_len;
+        uint16_t len = om_len > 2048 ? 2048 : om_len;
+        uint8_t *buf = malloc(len);
+        if (!buf) return BLE_ATT_ERR_INSUFFICIENT_RES;
         os_mbuf_copydata(ctxt->om, 0, len, buf);
 
         ESP_LOGI(TAG, "RX %d bytes", len);
         if (s_rx_cb) {
             s_rx_cb(buf, len);
         }
+        free(buf);
     }
     return 0;
 }
@@ -112,6 +136,11 @@ bool ble_nus_is_connected(void)
 }
 
 static void start_advertising(void)
+{
+    start_advertising_ex(true);
+}
+
+static void start_advertising_ex(bool fast)
 {
     struct ble_gap_adv_params adv_params;
     struct ble_hs_adv_fields fields;
@@ -150,8 +179,14 @@ static void start_advertising(void)
     memset(&adv_params, 0, sizeof(adv_params));
     adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
-    adv_params.itvl_min = 0x400; /* 625us * 0x400 = 640ms */
-    adv_params.itvl_max = 0x800; /* 625us * 0x800 = 1280ms, ~1000ms avg */
+
+    if (fast) {
+        adv_params.itvl_min = ADV_INTERVAL_FAST;
+        adv_params.itvl_max = ADV_INTERVAL_FAST;
+    } else {
+        adv_params.itvl_min = ADV_INTERVAL_SLOW;
+        adv_params.itvl_max = ADV_INTERVAL_SLOW;
+    }
 
     rc = ble_gap_adv_start(s_own_addr_type, NULL, BLE_HS_FOREVER,
                            &adv_params, gap_event_handler, NULL);
@@ -159,7 +194,9 @@ static void start_advertising(void)
         ESP_LOGE(TAG, "adv start failed: %d", rc);
         return;
     }
-    ESP_LOGI(TAG, "Advertising started");
+
+    s_adv_fast = fast;
+    ESP_LOGI(TAG, "Advertising started (%s)", fast ? "fast 500ms" : "slow 2000ms");
 }
 
 static int gap_event_handler(struct ble_gap_event *event, void *arg)
@@ -170,10 +207,14 @@ static int gap_event_handler(struct ble_gap_event *event, void *arg)
         if (event->connect.status == 0) {
             s_conn_handle = event->connect.conn_handle;
             s_is_connected = true;
+            s_adv_fast = false;
+            if (s_adv_timer) xTimerStop(s_adv_timer, 0);
             ESP_LOGI(TAG, "Device connected, handle=%d", s_conn_handle);
 
             /* Request larger MTU */
             ble_gattc_exchange_mtu(s_conn_handle, NULL, NULL);
+
+            if (s_connect_cb) s_connect_cb(true);
         } else {
             s_is_connected = false;
             start_advertising();
@@ -184,16 +225,20 @@ static int gap_event_handler(struct ble_gap_event *event, void *arg)
         ESP_LOGI(TAG, "DISCONNECT event, reason=%d", event->disconnect.reason);
         s_is_connected = false;
         s_conn_handle = BLE_HS_CONN_HANDLE_NONE;
+
+        if (s_connect_cb) s_connect_cb(false);
+
         start_advertising();
+        if (s_adv_timer) xTimerReset(s_adv_timer, 0);
         break;
 
     case BLE_GAP_EVENT_MTU:
-        ESP_LOGI(TAG, "MTU update: conn=%d, mtu=%d",
+        ESP_LOGD(TAG, "MTU update: conn=%d, mtu=%d",
                  event->mtu.conn_handle, event->mtu.value);
         break;
 
     case BLE_GAP_EVENT_ENC_CHANGE:
-        ESP_LOGI(TAG, "ENC_CHANGE, status=%d", event->enc_change.status);
+        ESP_LOGD(TAG, "ENC_CHANGE, status=%d", event->enc_change.status);
         break;
 
     case BLE_GAP_EVENT_REPEAT_PAIRING:
@@ -231,7 +276,8 @@ static void ble_on_sync(void)
              addr_val[5], addr_val[4], addr_val[3],
              addr_val[2], addr_val[1], addr_val[0]);
 
-    start_advertising();
+    start_advertising_ex(true);
+    if (s_adv_timer) xTimerReset(s_adv_timer, 0);
 }
 
 static void ble_on_reset(int reason)
@@ -248,6 +294,9 @@ static void ble_host_task(void *param)
 void ble_nus_init(ble_nus_rx_cb_t rx_callback)
 {
     s_rx_cb = rx_callback;
+
+    s_adv_timer = xTimerCreate("adv_timer", pdMS_TO_TICKS(ADV_FAST_DURATION_MS),
+                                pdFALSE, NULL, adv_timer_cb);
 
     esp_err_t rc = nimble_port_init();
     if (rc != ESP_OK) {
@@ -268,7 +317,7 @@ void ble_nus_init(ble_nus_rx_cb_t rx_callback)
     ble_hs_cfg.sm_sc = 0;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
 
-    ESP_LOGI(TAG, "SM config: io_cap=%d bonding=%d mitm=%d sc=%d",
+    ESP_LOGD(TAG, "SM config: io_cap=%d bonding=%d mitm=%d sc=%d",
              ble_hs_cfg.sm_io_cap, ble_hs_cfg.sm_bonding,
              ble_hs_cfg.sm_mitm, ble_hs_cfg.sm_sc);
 
@@ -293,4 +342,9 @@ void ble_nus_init(ble_nus_rx_cb_t rx_callback)
     nimble_port_freertos_init(ble_host_task);
 
     ESP_LOGI(TAG, "NUS service initialized");
+}
+
+void ble_nus_register_connect_cb(ble_nus_connect_cb_t cb)
+{
+    s_connect_cb = cb;
 }
