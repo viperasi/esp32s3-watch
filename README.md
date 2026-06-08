@@ -11,6 +11,14 @@
 - **RTC**: PCF85063
 - **电池**: 内置锂电池 + 电量监测
 
+## 界面预览
+
+### 表盘
+
+| 标准 | 大日期 |
+|:---:|:---:|
+| ![Watch Face](docs/images/watch_face.png) | ![Watch Face Large Date](docs/images/watch_face_large_date.png) |
+
 ## 功能
 
 | 模块 | 说明 |
