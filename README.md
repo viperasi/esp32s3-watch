@@ -15,9 +15,9 @@
 
 ### 表盘
 
-| 标准 | 大日期 |
+| 设备实截图 | 设计预览 |
 |:---:|:---:|
-| ![Watch Face](docs/images/watch_face.png) | ![Watch Face Large Date](docs/images/watch_face_large_date.png) |
+| ![Device Screenshot](docs/images/device_watch_face.png) | ![Watch Face](docs/images/watch_face.png) |
 
 ## 功能
 
@@ -42,6 +42,7 @@ main/
 ├── alarm_manager.c/h   # 闹钟存储与提醒
 ├── battery.cpp/h       # 电池电量读取
 ├── rtc_pcf85063.c/h    # RTC 驱动
+├── screenshot.c/h      # 屏幕截图工具
 ├── ble/
 │   ├── ble_manager.c/h         # BLE 初始化与 GAP/GATT 管理
 │   ├── ble_nus.c/h             # Nordic UART Service (数据传输)

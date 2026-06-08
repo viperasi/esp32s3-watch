@@ -57,13 +57,14 @@ static int gap_event_handler(struct ble_gap_event *event, void *arg);
 static void start_advertising(void);
 static void start_advertising_ex(bool fast);
 
+static bool s_restart_slow_adv = false;
+
 static void adv_timer_cb(TimerHandle_t timer)
 {
     if (!s_is_connected && s_adv_fast) {
         s_adv_fast = false;
+        s_restart_slow_adv = true;
         ble_gap_adv_stop();
-        start_advertising_ex(false);
-        ESP_LOGI(TAG, "Switched to slow advertising");
     }
 }
 
@@ -239,6 +240,15 @@ static int gap_event_handler(struct ble_gap_event *event, void *arg)
 
     case BLE_GAP_EVENT_ENC_CHANGE:
         ESP_LOGD(TAG, "ENC_CHANGE, status=%d", event->enc_change.status);
+        break;
+
+    case BLE_GAP_EVENT_ADV_COMPLETE:
+        if (s_restart_slow_adv) {
+            s_restart_slow_adv = false;
+            start_advertising_ex(false);
+            ESP_LOGI(TAG, "Switched to slow advertising");
+        }
+        break;
         break;
 
     case BLE_GAP_EVENT_REPEAT_PAIRING:

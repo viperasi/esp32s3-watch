@@ -14,6 +14,7 @@
 #include "ui/notification_ui.h"
 
 #include "alarm_manager.h"
+#include "screenshot.h"
 #include "nvs_flash.h"
 
 #define TAG "WATCH"
@@ -123,6 +124,8 @@ void app_main(void)
     battery_init();
 
     notification_ui_init();
+
+    // screenshot_auto_capture(8);  // Enable to capture screenshot on boot
 
     ble_gadgetbridge_register_notify_cb(on_notify_received_cb);
     ble_gadgetbridge_register_notify_delete_cb(on_notify_deleted_cb);

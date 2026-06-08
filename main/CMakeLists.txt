@@ -7,6 +7,7 @@ idf_component_register(SRCS "main.c" "watch_face.c" "app_manager.c" "app_launche
                        "ble/ble_gadgetbridge.c"
                        "ui/notification_ui.c"
                        "alarm_manager.c"
+                       "screenshot.c"
                        "fonts/font_barlow_172.c"
                        "fonts/font_barlow_120.c"
                        "fonts/font_barlow_72.c"
